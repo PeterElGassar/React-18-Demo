@@ -7,22 +7,28 @@ type User = {
 };
 function App() {
   const [error, setError] = useState("");
+  const [isLoading, setisLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const originalUsers = [...users];
 
   useEffect(() => {
     // cancelling an http request
     const controller = new AbortController();
+    setisLoading(true);
     axios
       .get<User[]>("https://jsonplaceholder.typicode.com/users")
-      .then(({ data: usersData }) => setUsers(usersData))
-      .catch((err) => setError(err.message));
+      .then(({ data: usersData }) => {
+        setUsers(usersData);
+        setisLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setisLoading(true);
+      });
 
     return () => controller.abort();
   }, []);
 
-  const originalUsers = [...users];
-
-  let isLoading = false;
   const addUser = () => {
     const newUser: User = { id: 0, name: "Mosh" };
     // setUsers([newUser, ...users]);
