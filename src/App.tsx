@@ -1,39 +1,18 @@
-import axios from "axios";
-import { useEffect, useState } from "react";
+import useUsers from "./hooks/useUsers";
+import userService, { User } from "./services/user-service";
 
-type User = {
-  id: number;
-  name: string;
-};
 function App() {
-  const [error, setError] = useState("");
-  const [isLoading, setisLoading] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
+  const { users, isLoading, error, setUsers, setLoading, setError } =
+    useUsers();
+
   const originalUsers = [...users];
-
-  useEffect(() => {
-    // cancelling an http request
-    const controller = new AbortController();
-    setisLoading(true);
-    axios
-      .get<User[]>("https://jsonplaceholder.typicode.com/users")
-      .then(({ data: usersData }) => {
-        setUsers(usersData);
-        setisLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setisLoading(true);
-      });
-
-    return () => controller.abort();
-  }, []);
 
   const addUser = () => {
     const newUser: User = { id: 0, name: "Mosh" };
-    // setUsers([newUser, ...users]);
-    axios
-      .post("https://jsonplaceholder.typicode.com/users", newUser)
+    setUsers([newUser, ...users]);
+
+    userService
+      .create<User>(newUser)
       .then(({ data: savedUser }) => setUsers([savedUser, ...users]))
       .catch((err) => {
         setError(err.message);
@@ -42,17 +21,25 @@ function App() {
   };
 
   const updateUser = (user: any) => {
+    const originalUsers = [...users];
     const updatedUser = { ...user, name: user.name + "!!" };
     // setUsers(users.map((u) => (u.id === user.id ? updatedUser : u)));
-    axios
-      .patch(
-        `https://jsonplaceholder.typicode.com/users/${user.id}`,
-        updatedUser
-      )
-      .catch((err) => {
-        setError(err.message);
-        setUsers(originalUsers);
-      });
+
+    userService.updateUser<User>(updatedUser).catch((err) => {
+      setError(err.message);
+      setUsers(originalUsers);
+    });
+  };
+
+  const deleteUser = (user: User) => {
+    const originalUsers = [...users];
+
+    setUsers(users.filter((u) => u.id !== user.id));
+
+    userService.delete(user.id).catch((err) => {
+      setError(err.message);
+      setUsers(originalUsers);
+    });
   };
 
   return (
@@ -74,7 +61,7 @@ function App() {
             <div>
               <button
                 className="mx-1 btn btn-outline-danger"
-                onClick={() => console.log()}
+                onClick={(e) => deleteUser(user)}
               >
                 delete
               </button>
